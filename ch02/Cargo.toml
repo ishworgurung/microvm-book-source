@@ -1,0 +1,15 @@
+[package]
+name = "ch02"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+description = "Chapter 2: a VM from /dev/kvm, raw and with rust-vmm"
+publish = false
+
+# Exact versions, so the code in the book keeps compiling.
+# Cargo.lock pins every other crate too.
+[dependencies]
+kvm-ioctls = "=0.25.1"
+kvm-bindings = "=0.14.2"
+vm-memory = { version = "=0.18.0", features = ["backend-mmap"] }
+libc = "0.2"

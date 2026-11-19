@@ -1,0 +1,19 @@
+[package]
+name = "rvmm"
+version = "0.3.0"
+edition = "2021"
+description = "Chapter 3: a VMM that boots a Linux kernel with PVH"
+publish = false
+
+# Exact versions (=), so the code matches the book. Cargo.lock
+# pins everything these crates pull in.
+[dependencies]
+kvm-ioctls = "=0.25.1"
+kvm-bindings = { version = "=0.14.2", features = ["fam-wrappers"] }
+vm-memory = { version = "=0.18.0", features = ["backend-mmap"] }
+linux-loader = { version = "=0.14.0", features = ["elf"] }
+vm-superio = "=0.8.2"
+vmm-sys-util = "=0.15.0"
+
+[profile.release]
+opt-level = 3

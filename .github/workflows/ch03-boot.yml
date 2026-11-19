@@ -1,0 +1,52 @@
+# Boot a real Linux kernel in chapter 3's VMM, to check the code
+# works. GitHub's Ubuntu runners have /dev/kvm. The output is only
+# for checking: the book's numbers come from its own test machine.
+name: ch03-boot
+
+on:
+  push:
+    branches: [main]
+    paths: ["ch03/**", ".github/workflows/ch03-boot.yml"]
+  pull_request:
+    paths: ["ch03/**", ".github/workflows/ch03-boot.yml"]
+  workflow_dispatch:
+
+jobs:
+  boot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Allow this user to open /dev/kvm
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
+      - name: Install cpio and decompressors
+        run: sudo apt-get update && sudo apt-get install -y cpio zstd lz4 xz-utils
+
+      - name: Unit tests
+        run: make -C ch03 test
+
+      - name: Get an uncompressed kernel
+        run: ch03/ci/get-vmlinux.sh "$RUNNER_TEMP/vmlinux"
+
+      - name: Boot it (make run)
+        working-directory: ch03
+        run: |
+          timeout 120 make run KERNEL="$RUNNER_TEMP/vmlinux" \
+            < /dev/null 2>&1 | tee "$RUNNER_TEMP/run.log"
+          grep -q "INIT-START" "$RUNNER_TEMP/run.log"
+          grep -q "stopped: guest reset via i8042" "$RUNNER_TEMP/run.log"
+
+      - name: Boot a 4 GiB guest (make run-memmap)
+        working-directory: ch03
+        run: |
+          timeout 120 make run-memmap KERNEL="$RUNNER_TEMP/vmlinux" \
+            < /dev/null 2>&1 | tee "$RUNNER_TEMP/memmap.log"
+          grep -q "0x0000000100000000-0x000000013fffffff" \
+            "$RUNNER_TEMP/memmap.log"
