@@ -6,9 +6,9 @@ name: ch03-boot
 on:
   push:
     branches: [main]
-    paths: ["ch03/**", ".github/workflows/ch03-boot.yml"]
+    paths: ["code/ch03/**", ".github/workflows/ch03-boot.yml"]
   pull_request:
-    paths: ["ch03/**", ".github/workflows/ch03-boot.yml"]
+    paths: ["code/ch03/**", ".github/workflows/ch03-boot.yml"]
   workflow_dispatch:
 
 jobs:
@@ -30,13 +30,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cpio zstd lz4 xz-utils
 
       - name: Unit tests
-        run: make -C ch03 test
+        run: make -C code/ch03 test
 
       - name: Get an uncompressed kernel
-        run: ch03/ci/get-vmlinux.sh "$RUNNER_TEMP/vmlinux"
+        run: code/ch03/ci/get-vmlinux.sh "$RUNNER_TEMP/vmlinux"
 
       - name: Boot it (make run)
-        working-directory: ch03
+        working-directory: code/ch03
         run: |
           timeout 120 make run KERNEL="$RUNNER_TEMP/vmlinux" \
             < /dev/null 2>&1 | tee "$RUNNER_TEMP/run.log"
@@ -44,7 +44,7 @@ jobs:
           grep -q "stopped: guest reset via i8042" "$RUNNER_TEMP/run.log"
 
       - name: Boot a 4 GiB guest (make run-memmap)
-        working-directory: ch03
+        working-directory: code/ch03
         run: |
           timeout 120 make run-memmap KERNEL="$RUNNER_TEMP/vmlinux" \
             < /dev/null 2>&1 | tee "$RUNNER_TEMP/memmap.log"

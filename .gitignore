@@ -1,4 +1,4 @@
 target/
-ch01/popf
-ch01/cpuid_exit
+code/ch01/popf
+code/ch01/cpuid_exit
 build/

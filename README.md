@@ -5,11 +5,11 @@ by Ishwor Gurung. Each directory holds the programs for one chapter.
 
 | Dir   | Chapter                  | What it is                                              | Needs `/dev/kvm` |
 |-------|--------------------------|---------------------------------------------------------|------------------|
-| `ch01` | Trap and emulate        | Two small C programs: `popf` and `cpuid_exit`           | no               |
-| `ch02` | KVM from userspace      | A VM from `/dev/kvm`: real, protected and long mode     | to run           |
-| `ch03` | Booting Linux           | `rvmm`, a VMM that boots a Linux kernel                 | to run           |
-| `ch04` | virtio                  | virtio-blk and virtio-net on virtio-mmio                | to run           |
-| `ch05` | Production VMMs         | seccomp and lazy restore; a Firecracker snapshot script | to run           |
+| `code/ch01` | Trap and emulate        | Two small C programs: `popf` and `cpuid_exit`           | no               |
+| `code/ch02` | KVM from userspace      | A VM from `/dev/kvm`: real, protected and long mode     | to run           |
+| `code/ch03` | Booting Linux           | `rvmm`, a VMM that boots a Linux kernel                 | to run           |
+| `code/ch04` | virtio                  | virtio-blk and virtio-net on virtio-mmio                | to run           |
+| `code/ch05` | Production VMMs         | seccomp and lazy restore; a Firecracker snapshot script | to run           |
 
 ## Requirements
 
@@ -18,9 +18,9 @@ by Ishwor Gurung. Each directory holds the programs for one chapter.
 - Rust via [rustup](https://rustup.rs) (each chapter pins its toolchain in
   `rust-toolchain.toml`)
 - `/dev/kvm` that you can read and write, for the parts that boot a guest.
-  `make -C ch02 check` tells you what is missing.
+  `make -C code/ch02 check` tells you what is missing.
 - chapter 3 also needs an uncompressed `vmlinux` built with `CONFIG_PVH=y`
-  (set `KERNEL=...`) and `cpio`; see `ch03/Makefile`
+  (set `KERNEL=...`) and `cpio`; see `code/ch03/Makefile`
 
 ## Build and run
 
@@ -28,13 +28,13 @@ by Ishwor Gurung. Each directory holds the programs for one chapter.
 git clone git@github.com:ishworgurung/microvm-book-source.git
 cd microvm-book-source
 
-make -C ch01 run          # one chapter
-make -C ch03 test         # unit tests, no /dev/kvm needed
+make -C code/ch01 run          # one chapter
+make -C code/ch03 test         # unit tests, no /dev/kvm needed
 make                      # everything that needs no kernel
 ```
 
 Every `Makefile` starts with a comment listing its targets. Chapter 4 builds
-on chapter 3's initramfs, so build `ch03` first.
+on chapter 3's initramfs, so build `code/ch03` first.
 
 ## CI
 
