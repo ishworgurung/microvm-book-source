@@ -1,6 +1,6 @@
-# Building a microVM: source code
+# microVMs from Scratch: source code
 
-Code for the book *Building a microVM: KVM to Firecracker in 100 Pages*
+Code for the book *microVMs from Scratch: KVM, virtio and Firecracker in Rust*
 by Ishwor Gurung. Each directory holds the programs for one chapter.
 
 | Dir   | Chapter                  | What it is                                              | Needs `/dev/kvm` |
