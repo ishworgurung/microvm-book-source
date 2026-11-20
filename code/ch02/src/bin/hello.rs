@@ -4,7 +4,7 @@
 use std::error::Error;
 use std::io::{self, Write};
 
-use ch02::{guest::HELLO16, COM1, LOAD_ADDR, MEM_SIZE};
+use ch02::{COM1, LOAD_ADDR, MEM_SIZE, guest::HELLO16};
 use kvm_bindings::kvm_userspace_memory_region;
 use kvm_ioctls::{Kvm, VcpuExit, VmFd};
 use vm_memory::{

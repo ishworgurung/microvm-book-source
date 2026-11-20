@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 
 from vmlab import GUEST, VENDOR, Vmm, api, median, rss_kib, threads, wait_for_path
 
@@ -120,23 +121,23 @@ def one_boot(base=ARGS):
     t_start = fc.start()
     t_first = fc.vm.wait_line(r".", timeout=10)[0]
     t_init, init_line, _ = fc.vm.wait_line(r"^INIT-START")
-    t_done, done_line, _ = fc.vm.wait_line(r"^INIT-DONE")
+    t_done, _done_line, _ = fc.vm.wait_line(r"^INIT-DONE")
     rc = fc.vm.wait()
     t_exit = fc.vm.now()
     guest_init = float(init_line.split()[2])
-    return dict(
-        fc=fc,
-        sock=fc.t_sock,
-        cfg=t_cfg1 - t_cfg0,
-        start=t_start,
-        first=t_first,
-        init=t_init,
-        done=t_done,
-        exit=t_exit,
-        rc=rc,
-        guest_init=guest_init,
-        metrics=metrics,
-    )
+    return {
+        "fc": fc,
+        "sock": fc.t_sock,
+        "cfg": t_cfg1 - t_cfg0,
+        "start": t_start,
+        "first": t_first,
+        "init": t_init,
+        "done": t_done,
+        "exit": t_exit,
+        "rc": rc,
+        "guest_init": guest_init,
+        "metrics": metrics,
+    }
 
 
 def summed_metrics(path):
@@ -277,7 +278,7 @@ def vsock_connect(uds, port, timeout=10):
 
 
 def debugfs_cat(image, path):
-    r = subprocess.run(["debugfs", "-R", f"cat {path}", image], capture_output=True, text=True)
+    r = subprocess.run(["debugfs", "-R", f"cat {path}", image], check=False, capture_output=True, text=True)
     return r.stdout.strip()
 
 
@@ -297,7 +298,7 @@ def demo_devices():
     fc.start()
     fc.vm.wait_line(r"\(READY\)")
     for t, line in fc.vm.guest_lines():
-        if line.startswith("  ") or line.startswith("[init] task"):
+        if line.startswith(("  ", "[init] task")):
             print(f"  [{t * 1000:7.1f} ms] {line}")
     s, ack = vsock_connect(uds, 5000)
     print(f"  host -> {uds.replace(WORK, '$WORK')}: CONNECT 5000 -> {ack!r}")
@@ -328,7 +329,7 @@ def demo_net():
 
     r = subprocess.run(
         ["unshare", "--user", "--map-root-user", "--net", sys.executable, os.path.abspath(__file__), NET_INNER],
-        text=True,
+        text=True, check=False,
     )
     if r.returncode:
         print("  net demo failed, rc", r.returncode)
@@ -431,7 +432,7 @@ def changed_pages(a, b, page=4096):
             if x != y:
                 out += [
                     i + j
-                    for j in range(0, len(x) // page)
+                    for j in range(len(x) // page)
                     if x[j * page : (j + 1) * page] != y[j * page : (j + 1) * page]
                 ]
             i += len(x) // page
@@ -588,7 +589,7 @@ def demo_hotplug():
     pid = fc.vm.proc.pid
 
     def guest_mem(start):
-        t, line, _ = fc.vm.wait_line(r"MemTotal", start=start, timeout=10)
+        _t, line, _ = fc.vm.wait_line(r"MemTotal", start=start, timeout=10)
         return int(line.split("MemTotal:")[1].split()[0])
 
     def plugged_after(target, t0):
@@ -748,7 +749,7 @@ def demo_kbdprobe():
 def demo_jailer():
     hr("9. The jailer, run as an unprivileged user")
     print("  jailer --help (first lines of the required arguments):")
-    r = subprocess.run([JAILER, "--help"], capture_output=True, text=True)
+    r = subprocess.run([JAILER, "--help"], check=False, capture_output=True, text=True)
     for l in r.stdout.splitlines():
         if l.strip().startswith(
             (
@@ -798,12 +799,12 @@ def demo_jailer():
     ]
     print(f"\n  unprivileged user {os.getuid()} runs: {' '.join(argv)}")
 
-    r = subprocess.run(argv, capture_output=True, text=True)
+    r = subprocess.run(argv, check=False, capture_output=True, text=True)
     print(f"\n  as uid {os.getuid()}: rc={r.returncode}: {(r.stderr or r.stdout).strip()[:300]}")
     r = subprocess.run(
         ["unshare", "--user", "--map-root-user", "--mount", *argv[:5], "--uid", "0", "--gid", "0", *argv[9:]],
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
     print(f"  as root inside a user namespace: rc={r.returncode}: {(r.stderr or r.stdout).strip()[:300]}")
     print("  jail directory left behind:")
@@ -838,7 +839,7 @@ def userns_limits():
     #    namespace, the kernel accepts only a one-line map onto our own uid.
     r = subprocess.run(
         ["unshare", "--user", "sh", "-c", f'echo "0 {other} 1" > /proc/self/uid_map'],
-        capture_output=True, text=True,
+        check=False, capture_output=True, text=True,
     )
     print(f"    write '0 {other} 1' to uid_map (host uid {other} as root inside): "
           f"{r.stderr.strip().split(': ')[-1] if r.returncode else 'accepted'}")
@@ -916,7 +917,8 @@ def jail_inner(how, jail):
         mount("/dev/kvm", os.path.join(jail, "dev", "kvm"))
         os.chroot(jail)
         os.chdir("/")
-    print(open("/vm.json", "r").readlines(), flush=True)
+    with open("/vm.json") as f:
+        print(f.readlines(), flush=True)
     os.execv("/firecracker", ["/firecracker", "--no-api", "--config-file", "/vm.json", "--log-path", "/dev/null"])
 
 
@@ -972,7 +974,7 @@ def one_hand_jail(how):
     # time.sleep(2)
 
     vm.wait_line(r"^tick 5 ")
-    fcpid = next(p for p in descendants(vm.proc.pid) if open(f"/proc/{p}/comm").read().strip() == "firecracker")
+    fcpid = next(p for p in descendants(vm.proc.pid) if Path(f"/proc/{p}/comm").read_text().strip() == "firecracker")
     root = sorted(os.listdir(f"/proc/{fcpid}/root"))
     print(f"  firecracker pid {fcpid} (host view); its / contains only: {root}")
     with open(f"/proc/{fcpid}/status") as f:
