@@ -16,6 +16,7 @@ static /init (guest/init.c), steered by the kernel command line.
 Nothing here needs root. /dev/kvm must be accessible.
 """
 
+import io
 import json
 import os
 import shutil
@@ -25,6 +26,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 from vmlab import GUEST, VENDOR, Vmm, api, median, rss_kib, threads, wait_for_path
 
@@ -82,7 +84,7 @@ class Firecracker:
     def patch(self, url, body):
         return api(self.sock, "PATCH", url, body)
 
-    def get(self, url):
+    def get(self, url) -> Any:
         return api(self.sock, "GET", url)[1]
 
     def configure(
@@ -1023,6 +1025,7 @@ DEMOS = {
 
 
 def main():
+    assert isinstance(sys.stdout, io.TextIOWrapper)
     sys.stdout.reconfigure(line_buffering=True)  # interleave correctly with the namespace child
     if len(sys.argv) > 1 and sys.argv[1] == NET_INNER:
         net_inner()
