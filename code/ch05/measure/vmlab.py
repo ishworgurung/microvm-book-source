@@ -78,7 +78,9 @@ class Vmm:
         self.argv = argv
 
     def _read(self):
-        for raw in iter(self.proc.stdout.readline, b""):
+        stdout = self.proc.stdout
+        assert stdout is not None  # opened with stdout=PIPE
+        for raw in iter(stdout.readline, b""):
             t = time.monotonic() - self.t0
             line = raw.decode(errors="replace").rstrip("\r\n")
             with self.cv:
